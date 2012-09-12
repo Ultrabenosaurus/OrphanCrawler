@@ -21,6 +21,7 @@ By default, choosing XML output will save an XML file to the directory from whic
 To Do
 =====
 
+- Figure out why it won't crawl pages with both a file extension and a query string, then fix it
 - Look into making XML output compatible with Google Sitemaps
 - Make relativePathfix() more adaptable and competent
 - Allow for listing links to external websites/other protocols
