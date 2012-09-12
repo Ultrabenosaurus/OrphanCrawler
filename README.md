@@ -17,3 +17,12 @@ $output = $crawler->output(['php'|'xml']);
 ```
 
 By default, choosing XML output will save an XML file to the directory from which the script is used, providing you with the filename (for a link, redirect, whatever). Using PHP format will return a multi-dimensional array of crawled page count, crawled page list and a list of links-per-page.
+
+To Do
+=====
+
+- Look into making XML output compatible with Google Sitemaps
+- Make relativePathfix() more adaptable and competent
+- Allow for listing links to external websites/other protocols
+- Add a list of files included on each page (images, flash files, etc)
+- Look into other output formats
