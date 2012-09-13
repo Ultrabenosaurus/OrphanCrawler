@@ -22,7 +22,10 @@ To Do
 =====
 
 - Figure out why it won't crawl pages with both a file extension and a query string, then fix it
-- Make relativePathfix() more adaptable and competent
+- Make relativePathFix() more adaptable and competent
+  - Turn it into a full path handler rather than just fixing relative paths?
+  - Process blog-style paths
 - Allow for listing links to external websites/other protocols
+  - Main problem with this is javascript links
 - Add a list of files included on each page (images, flash files, etc)
 - Look into other output formats
