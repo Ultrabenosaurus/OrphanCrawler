@@ -18,9 +18,8 @@ include 'site-crawler.class.php';
 		<?php
 		
 		$url = 'www.autohotkey.com';
-		$fname = explode('.', $url);
 		$type = 'xml';
-		$options = array('file_name'=>$fname[1].'_'.date('Y-m-d'));
+		$options = array('use_date'=>true);
 		
 		$crawler = new SiteCrawler($url, array('wiki', 'forum'));
 		$output = $crawler->output($type, $options);

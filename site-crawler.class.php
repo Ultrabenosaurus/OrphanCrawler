@@ -193,7 +193,8 @@ class SiteCrawler{
 		  	supported format.
 		  	do not use this to add additional formats - that is the job of the switch()
 		  	
-		  	- file_name: the name to use for XML output, without file extension
+		  	- file_name: string > the name to use for XML output, without file extension
+		  	- use_date:	 boolean > append date to the file name in the format '_YYYY-MM-DD'
 		*/
 		switch($type){
 			case 'php':
@@ -239,6 +240,9 @@ class SiteCrawler{
 					} else {
 						$name = $name[0];
 					}
+				}
+				if(isset($options) && isset($options['use_date']) && $options['use_date'] === true){
+					$name .= '_'.date('Y-m-d');
 				}
 				// write data to file and return filename
 				$xml_file = fopen($name.'.xml', 'w');
