@@ -12,14 +12,16 @@ Usage:
 <?php
 include 'site-crawler.class.php';
 $crawler = new SiteCrawler('www.autohotkey.com'[, array('wiki', 'forum')[, array('html', 'htm', 'php', 'aspx')]]);
-$output = $crawler->output(['php'|'xml']);
+$output = $crawler->output(['php'|'xml'|'sitemap'[, array('file_name'=>'my-list')]]);
 ?>
 ```
 
-By default, choosing XML output will save an XML file to the directory from which the script is used, providing you with the filename (for a link, redirect, whatever). Using PHP format will return a multi-dimensional array of crawled page count, crawled page list and a list of links-per-page.
+##Output Formats##
+- 'php' is the default output which provides a multi-dimensional array of crawled page count, crawled page list and a list of links-per-page.
+- 'xml' output saves the list of links-per-page to an xml file. The file name is generated from the initial URL unless a name is specified when calling the `output()` function.
+- 'sitemap' uses the sitemaps.org 0.9 schema to generate a Google-compatible Sitemap.xml file.
 
-To Do
-=====
+##To Do##
 
 - Figure out why it won't crawl pages with both a file extension and a query string, then fix it
 - Make relativePathFix() more adaptable and competent
