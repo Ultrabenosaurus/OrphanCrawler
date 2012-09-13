@@ -195,6 +195,7 @@ class SiteCrawler{
 		  	
 		  	- file_name: string > the name to use for XML output, without file extension
 		  	- use_date:	 boolean > append date to the file name in the format '_YYYY-MM-DD'
+		  				 string > custom date format to be used
 		*/
 		switch($type){
 			case 'php':
@@ -241,8 +242,13 @@ class SiteCrawler{
 						$name = $name[0];
 					}
 				}
-				if(isset($options) && isset($options['use_date']) && $options['use_date'] === true){
-					$name .= '_'.date('Y-m-d');
+				if(isset($options) && isset($options['use_date'])){
+					$name .= '_';
+					if($options['use_date'] === true){
+						$name .= date('Y-m-d');
+					} elseif(gettype($options['use_date']) === 'string'){
+						$name .= date($options['use_date']);
+					}
 				}
 				// write data to file and return filename
 				$xml_file = fopen($name.'.xml', 'w');
