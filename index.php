@@ -17,10 +17,11 @@ include 'site-crawler.class.php';
 	<body>
 		<?php
 		
-		$type = 'php';
+		$type = 'xml';
+		$options = array('file_name'=>'autohotkey_'.date('Y-m-d'));
 		
 		$crawler = new SiteCrawler('www.autohotkey.com', array('wiki', 'forum'));
-		$output = $crawler->output($type);
+		$output = $crawler->output($type, $options);
 		
 		switch($type){
 			case 'xml':
