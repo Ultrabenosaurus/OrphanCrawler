@@ -173,9 +173,28 @@ class SiteCrawler{
 		}
 	}
 	
-	// formats array contents ready for display (default: xml)
-	public function output($type = 'xml'){
-		// switch statement to make it easy to add different output formats
+	// formats array contents ready for display (default: php)
+	public function output($type = 'php', $options = null){
+		/* 
+		  $type
+		  	a string containing the name of the desired output format.
+		  	format descriptions:
+		  	- php:		 returns a multi-dimensional array containing the number of pages
+		  				 crawled; a list of all pages crawled ($visited); and a list of
+		  				 all the links found on each page ($links)
+		  	- xml:		 turns the $links array into an XML document following the same
+		  				 format as the array (page_crawled = array(links_found))
+		  	- sitemap:	 creates a Google-compatible Sitemap.xml file according to the
+		  				 sitemaps.org 0.9 schema. 
+		*/
+		/*
+		  $options
+		  	an array of data that can be used to change the default behavior of any
+		  	supported format.
+		  	do not use this to add additional formats - that is the job of the switch()
+		  	
+		  	- file_name: the name to use for XML output, without file extension
+		*/
 		switch($type){
 			case 'php':
 			// for php format, return an array of page count, $visited and $links
@@ -208,17 +227,57 @@ class SiteCrawler{
 				}
 				$xml_doc->appendChild($paths);
 				$xml_doc->normalizeDocument();
-				// create filename from domain name
-				$name = explode('.', $this->url);
-				if(count($name) > 2){
-					$name = $name[1];
+				
+				// if a name is provided, use that
+				if(isset($options) && isset($options['file_name'])){
+					$name = $options['file_name'];
 				} else {
-					$name = $name[0];
+				// otherwise make the name from the $url that was crawled
+					$name = explode('.', $this->url);
+					if(count($name) > 2){
+						$name = $name[1];
+					} else {
+						$name = $name[0];
+					}
 				}
+				// write data to file and return filename
 				$xml_file = fopen($name.'.xml', 'w');
 				fwrite($xml_file, $xml_doc->saveXML());
 				fclose($xml_file);
 				$return = $name.'.xml';
+				break;
+			case 'sitemap':
+			// for sitemap format, make an xml document of $visited and save to the server
+			// Google-compatible sitemaps.org schema used
+				sort($this->visited);
+				$xml_doc = new DOMDocument();
+				$xml_doc->formatOutput = true;
+				
+				// use Google-compatible Sitemap format/schema
+				$paths = $xml_doc->createElement('urlset');
+				$xmlns = $xml_doc->createAttribute('xmlns');
+				$xmlns->value = "http://www.sitemaps.org/schemas/sitemap/0.9";
+				$paths->appendChild($xmlns);
+				// loop through all entries in $visited
+				foreach ($this->visited as $file_path) {
+					// create necessary elements
+					$url = $xml_doc->createElement('url');
+					$loc = $xml_doc->createElement('loc');
+					$path = $xml_doc->createTextNode('http://'.$this->url.urlencode($file_path));
+
+					// assemble elements in order
+					$loc->appendChild($path);
+					$url->appendChild($loc);
+					$paths->appendChild($url);
+				}
+				$xml_doc->appendChild($paths);
+				$xml_doc->normalizeDocument();
+				
+				// save file, return filename
+				$xml_file = fopen('Sitemap.xml', 'w');
+				fwrite($xml_file, $xml_doc->saveXML());
+				fclose($xml_file);
+				$return = 'Sitemap.xml';
 				break;
 		}
 		return $return;
