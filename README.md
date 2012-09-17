@@ -11,7 +11,15 @@ Usage:
 ```php
 <?php
 include 'site-crawler.class.php';
+
+// $crawler = new SiteCrawler($_start, $_ignore = null, $_types = array('html', 'htm', 'php'));
+// $_start - URL to start crawling from
+// $_ignore - an array of folders to be ignored
+// $_types - an array of filetypes to allow
 $crawler = new SiteCrawler('www.autohotkey.com'[, array('wiki', 'forum')[, array('html', 'htm', 'php', 'aspx')]]);
+
+// $output = $crawler->output($type = 'xml');
+// $type - the desired output format
 $output = $crawler->output(['php'|'xml'|'sitemap'[, array('file_name'=>'my-list')]]);
 ?>
 ```
@@ -23,7 +31,6 @@ $output = $crawler->output(['php'|'xml'|'sitemap'[, array('file_name'=>'my-list'
 
 ##To Do##
 
-- Figure out why it won't crawl pages with both a file extension and a query string, then fix it
 - Make relativePathFix() more adaptable and competent
   - Turn it into a full path handler rather than just fixing relative paths?
   - Process blog-style paths
