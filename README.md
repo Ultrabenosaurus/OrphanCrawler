@@ -4,6 +4,33 @@ A collection of PHP classes to crawl a website and its FTP server, then comparin
 
 ##Classes##
 
+###OrphanCrawler###
+
+`orphan-crawler.class.php`
+
+Can be used to operate one or both of the other classes in this project. Provides several ways of interacting with the other classes in order to make it more versatile and usable in many situations.
+
+**Usage:**
+```php
+<?php
+include 'orphan-crawler.class.php';
+
+$crawler = new OrphanCrawler();
+$crawler->ftp('www.example.com', 'fred', 'awesomepassword123');
+$crawler->site('www.example.com');
+
+$ftp_config = $crawler->settings(array('ftp'=>array('passive'=>true, 'file_types'=>array('js', 'css', 'png'))));
+$site_config = $crawler->settings(array('site'=>array('ignore_dirs'=>array('cgi-bin', '_uploads'), 'file_types'=>array('aspx'))));
+
+$output = $crawler->output('compare', 'php');
+echo "<pre>" . print_r($output, true) . "</pre>";
+
+?>
+```
+
+**Output Formats**
+- 'php' is the default output which provides a multi-dimensional array of the orphaned files, FTP output $list and Site output $links.
+
 ###SiteCrawler###
 
 `site-crawler.class.php`
@@ -54,11 +81,9 @@ echo "<pre>" . print_r($output, true) . "</pre>";
 
 **Output Formats**
 - 'php' is the default output which provides a multi-dimensional array of crawled page count, crawled page list and a list of links-per-page.
-- 'xml' output saves the list of files to an XML file. The file name is generated from the host address.
 
 ##To Do##
 
-- Write the comparison class
 - Make relativePathFix() more adaptable and competent
   - Turn it into a full path handler rather than just fixing relative paths?
   - Process blog-style paths
@@ -66,3 +91,5 @@ echo "<pre>" . print_r($output, true) . "</pre>";
   - Main problem with this is javascript links
 - Add a list of files included on each page (images, flash files, etc) rather than just hyperlinks
 - Look into other output formats
+  - Add XML format to FTPCrawler
+  - Add XML format to OrphanCrawler

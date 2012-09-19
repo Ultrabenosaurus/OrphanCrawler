@@ -164,12 +164,12 @@ class FTPCrawler{
 	}
 	
 	// attempts connection and login to FTP server
-	public function connect(){
+	private function connect(){
 		// try to connect to FTP server
 		$this->ftp_conn = ftp_connect($this->server, $this->port);
 		// if cannot login, return errors
 		if(!ftp_login($this->ftp_conn, $this->user, $this->password)){
-			$return = array('details' => array('server' => $this->server, 'port' => $this->port, 'username' => $this->user, 'password' => $this->password, 'passive' => $this->passive), 'connected' => is_resource($this->ftp_conn), 'logged_in' => false);
+			$return = array('details' => array('server' => $this->server, 'port' => $this->port, 'username' => $this->user, 'password' => $this->password, 'passive' => $this->passive), 'connected' => is_resource($this->ftp_conn), 'logged_in' => false, 'other'=>'Could not login.');
 		} else {
 			// check if passive mode is required
 			if($this->passive){
@@ -194,12 +194,21 @@ class FTPCrawler{
 	}
 	
 	private function crawl(){
+		// check that a connection has been established
+		if(is_null($this->ftp_conn)){
+			// if no connection, attempt to make one
+			$results = $this->connect();
+			// if connection fails, display errors and prevent crawl() from running
+			if(is_array($results)){
+				echo "<pre>" . print_r($results, true) . "</pre>";
+				return false;
+			}
+		}
 		// make a copy of $dirs to keep track of changes, loop through it
 		$temp_dirs = $this->dirs;
 		foreach ($temp_dirs as $dir) {
 			// change dir, list everything there
-			ftp_chdir($this->ftp_conn, $dir);
-			$temp_list = ftp_nlist($this->ftp_conn, ftp_pwd($this->ftp_conn));
+			$temp_list = ftp_nlist($this->ftp_conn, $dir);
 			// loop through directory listing, check if file or directory
 			foreach ($temp_list as $path) {
 				if($this->ftpIsDir($path)){
@@ -320,7 +329,7 @@ class FTPCrawler{
 	}
 	
 	// formats data for output to user
-	public function output($type = 'xml'){
+	public function output($type = 'php'){
 		// gather data by crawling the server
 		$this->crawl();
 		switch ($type) {
@@ -336,7 +345,8 @@ class FTPCrawler{
 					$return['details']['passive'] = 'true';
 				}
 				$return['details']['start_dir'] = $this->start_dir;
-				$return['list:'.count($this->list)] = $this->list;
+				array_unshift($this->list, count($this->list));
+				$return['list'] = $this->list;
 				break;
 		}
 		// return formatted data

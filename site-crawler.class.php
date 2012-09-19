@@ -267,8 +267,8 @@ class SiteCrawler{
 		}
 	}
 	
-	// formats array contents ready for display (default: xml)
-	public function output($type = 'xml'){
+	// formats array contents ready for display (default: php)
+	public function output($type = 'php'){
 		// crawl the site
 		$this->crawl();
 		
@@ -287,7 +287,8 @@ class SiteCrawler{
 				}
 				$temp = array_unique($temp);
 				sort($temp);
-				$return['crawl']['links:'.count($temp)] = $temp;
+				array_unshift($temp, count($temp));
+				$return['crawl']['links'] = $temp;
 				ksort($this->links);
 				// loop through all arrays in $links to add the per-page total
 				foreach ($this->links as $path => $links) {
