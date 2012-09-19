@@ -4,7 +4,7 @@ A collection of PHP classes to crawl a website and its FTP server, then comparin
 
 ##Classes##
 
-####SiteCrawler####
+###SiteCrawler###
 
 `site-crawler.class.php`
 
@@ -31,7 +31,7 @@ echo "<pre>" . print_r($output, true) . "</pre>";
 - 'xml' output saves the list of links-per-page to an XML file. The file name is generated from the initial URL.
 - 'sitemap' uses the sitemaps.org 0.9 schema to generate a Google-compatible Sitemap.xml file.
 
-####FTPCrawler####
+###FTPCrawler###
 
 `ftp-crawler.class.php`
 
