@@ -1,7 +1,7 @@
-SiteCrawler
+OrphanCrawler
 ===========
 
-A simple PHP class to crawl through a site extracting hyperlinks.
+A collection of PHP classes to crawl a website and its FTP server, then comparing the two to find orphaned files.
 
 Given a starting URL, this class will find and navigate through all hyperlinks it can find, adding them to a list of crawled pages and a multi-dimensional array of the links contained on each page it crawls.
 
