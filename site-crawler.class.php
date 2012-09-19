@@ -1,36 +1,127 @@
 <?php
 
 class SiteCrawler{
-	private $url;
-	private $pages;
-	private $current_path;
-	private $links;
-	private $visited;
-	private $ignore_dirs;
-	private $file_types;
-	private $doc;
+	private $url; 			// (string) initial to start crawling from
+	private $pages;			// (array) queue of pages yet to be crawled
+	private $current_path;	// (string) directory of current page
+	private $links;			// (array) multi-dimensional array of links-per-page
+	private $visited;		// (array) list of all pages visited during crawl
+	private $ignore_dirs;	// (array|null) any directories to be ignored [currently applies to any depth]
+	private $file_types;	// (array) extensions of files to be crawled
+	private $doc;			// (DOMDocument) object used to open pages
 	
 	// adds initial values to variables, starts the crawl
-	public function __construct($start, $ignore = null, $types = array('html', 'htm', 'php')){
-		// user-changeable settings
-		$this->url = $start;
-		$this->ignore_dirs = $ignore;
-		$this->file_types = $types;
+	public function __construct($_start){
+		// starting url
+		$this->url = $_start;
 		
 		// variables used for crawling
 		$this->pages = array('/');
 		$this->current_path = '/';
 		$this->links = array();
 		$this->visited = array();
+		$this->ignore_dirs = null;
+		$this->file_types = array('html', 'htm', 'php');
 		
 		// empty DOMDocument for loading pages and finding links
 		$this->doc = new DOMDocument();
 		libxml_use_internal_errors(true);
 		$this->doc->strictErrorChecking = false;
 		$this->doc->recover = true;
-		
-		// start crawling the site
-		$this->crawl();
+	}
+	
+	// allows user to change variables if values are valid
+	public function settings($options = 'get'){
+		// ensure settings are given
+		if(is_array($options) && count($options) > 0){
+			// loop through all settings given
+			foreach ($options as $setting => $value) {
+				// check for existence of desired variable
+				if(property_exists('SiteCrawler', $setting)){
+					// switch through all variables for validation
+					switch ($setting) {
+						// check if desired value is a string
+						case 'url':
+							if(gettype($value) === 'string'){
+								// set variable, return true
+								$this->{$value} = $value;
+								$return[$setting] = true;
+							} else {
+								// return errors 
+								$return[$setting] = array('value'=>$value, 'error'=>'Given value was type '.gettype($value).', <em>string</em> required.');
+							}
+							break;
+						// check if value is populated array
+						case 'file_types':
+							if(gettype($value) === 'array' && count($value) > 0){
+								// loop through array
+								foreach ($value as $type) {
+									// check if value is a string
+									if(gettype($type) === 'string'){
+										// set variable, return true
+										$this->{$setting}[] = $type;
+										$return[$setting][$type] = true;
+									} else {
+										// return errors if not string
+										$return[$setting][$type] = array('value'=>$type, 'error'=>'Given value was type '.gettype($type).', <em>string</em> required.');
+									}
+								}
+								// remove duplicates from array
+								$this->{$setting} = array_unique($this->$setting);
+							} else {
+								// return errors if not array
+								$return[$setting] = array('value'=>$value, 'error'=>'Given value was type '.gettype($value).', <em>array</em> required.');
+							}
+							break;
+						// check if value is populated array
+						case 'ignore_dirs':
+							if (gettype($value) === 'array' && count($value) > 0) {
+								// loop through array
+								foreach ($value as $type) {
+									// check if value is a string
+									if(gettype($type) === 'string'){
+										// set variable, return true
+										$this->{$setting}[] = $type;
+										$return[$setting][$type] = true;
+									} else {
+										// return errors if not string
+										$return[$setting][$type] = array('value'=>$type, 'error'=>'Given value was type '.gettype($type).', <em>string</em> required.');
+									}
+								}
+								// remove duplicates from array
+								$this->{$setting} = array_unique($this->$setting);
+							// check if value is null
+							} elseif(is_null($value)) {
+								// set variable, return true
+								$this->{$setting} = null;
+								$return[$setting] = true;
+							} else {
+								// return errors if not array or null
+								$return[$setting] = array('setting' => $setting, 'value' => $value, 'error' => 'Given $value was type '.gettype($value).', <em>array</em> or <em>null</em> required');
+							}
+							break;
+					}
+				}
+			}
+		} else {
+			// if $options is not an array, switch it to decide what to do
+			switch ($options) {
+				// if $options is 'get', print all variables but $pages (usually empty), $visited and $links (could be massive), and $doc (DOMDocument object)
+				case 'get':
+					// initiate a ReflectionClass object, gather properties
+					$reflect = new ReflectionClass($this);
+					$properties = $reflect->getProperties();
+					// loop through properties, add to array
+					foreach ($properties as $prop) {
+						$name = $prop->getName();
+						if($name !== 'pages' && $name !== 'links' && $name !== 'visited' && $name !== 'doc'){
+							$return[$name] = $this->{$name};
+						}
+					}
+					break;
+			}
+		}
+		return $return;
 	}
 	
 	// opens first entry in $pages, extracts all hyperlinks, adds them to $links
@@ -50,25 +141,7 @@ class SiteCrawler{
 					if(strtolower($attrib->name) == 'href'){
 						// make sure its not external, javascript or to an anchor
 						if(count(explode(':', $attrib->value)) < 2 && count(explode('#', $attrib->value)) < 2){
-							// check if any directories should be ignored
-							if(!is_null($this->ignore_dirs)){
-								$add = true;
-								// loop through ignored directories, compare to the path in the link
-								foreach ($this->ignore_dirs as $dir) {
-									if(array_search($dir, explode('/', $attrib->value)) === false){
-										$foo = 'bar';
-									} else {
-										$add = false;
-									}
-								}
-								// if link doesn't go to a directory that should be ignored, add to array
-								if($add){
-									$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
-								}
-							// if no directories should be ignored, add everything
-							} else {
-								$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
-							}
+							$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
 						}
 					}
 				}
@@ -151,12 +224,33 @@ class SiteCrawler{
 			if(count(explode('.', $path)) > 1){
 				// get the file extension
 				$file = explode('.', $path);
-				$type = count($file);
-				$type = $file[$type-1];
+				$qry = false;
+				foreach ($file as $key => $value){
+					if (count(explode('?', $value)) > 1) {
+						$file[$key] = explode('?', $value);
+						$qry = $key;
+					}
+				}
+				if($qry){
+					$type = $file[$qry][0];
+				} else {
+					$type = count($file);
+					$type = $file[$type-1];
+				}
 				// remove any links that are to files NOT on the accept list (deafult: html, htm, php)
 				if(array_search($type, $this->file_types) === false){
 					while($key = array_search($path, $this->pages)){
 						array_splice($this->pages, $key, 1);
+					}
+				}
+			}
+			if(!is_null($this->ignore_dirs)){
+				// loop through ignored directories, compare to the path in the link
+				foreach ($this->ignore_dirs as $dir) {
+					if(array_search($dir, explode('/', $path)) !== false){
+						while($key = array_search($path, $this->pages)){
+							array_splice($this->pages, $key, 1);
+						}
 					}
 				}
 			}
@@ -173,38 +267,32 @@ class SiteCrawler{
 		}
 	}
 	
-	// formats array contents ready for display (default: php)
-	public function output($type = 'php', $options = null){
-		/* 
-		  $type
-		  	a string containing the name of the desired output format.
-		  	format descriptions:
-		  	- php:		 returns a multi-dimensional array containing the number of pages
-		  				 crawled; a list of all pages crawled ($visited); and a list of
-		  				 all the links found on each page ($links)
-		  	- xml:		 turns the $links array into an XML document following the same
-		  				 format as the array (page_crawled = array(links_found))
-		  	- sitemap:	 creates a Google-compatible Sitemap.xml file according to the
-		  				 sitemaps.org 0.9 schema. 
-		*/
-		/*
-		  $options
-		  	an array of data that can be used to change the default behavior of any
-		  	supported format.
-		  	do not use this to add additional formats - that is the job of the switch()
-		  	
-		  	- file_name: string > the name to use for XML output, without file extension
-		  	- use_date:	 boolean > append date to the file name in the format '_YYYY-MM-DD'
-		  				 string > custom date format to be used
-		*/
+	// formats array contents ready for display (default: xml)
+	public function output($type = 'xml'){
+		// crawl the site
+		$this->crawl();
+		
+		// switch statement to make it easy to add different output formats
 		switch($type){
 			case 'php':
 			// for php format, return an array of page count, $visited and $links
-				$return['pages_crawled']['total'] = count($this->visited);
+				$return['crawl']['total'] = count($this->visited);
 				sort($this->visited);
-				$return['pages_crawled']['paths'] = $this->visited;
+				$return['crawl']['paths'] = $this->visited;
+				$temp = array();
+				foreach ($this->links as $key => $value) {
+					foreach ($value as $key => $value) {
+						$temp[] = $value;
+					}
+				}
+				$temp = array_unique($temp);
+				sort($temp);
+				$return['crawl']['links:'.count($temp)] = $temp;
 				ksort($this->links);
-				$return['page_links'] = $this->links;
+				// loop through all arrays in $links to add the per-page total
+				foreach ($this->links as $path => $links) {
+					$return['link_map'][$path.':'.count($links)] = $links;
+				}
 				break;
 			case 'xml':
 			// for xml, make an xml document of $links and save to the server
@@ -229,65 +317,17 @@ class SiteCrawler{
 				}
 				$xml_doc->appendChild($paths);
 				$xml_doc->normalizeDocument();
-				
-				// if a name is provided, use that
-				if(isset($options) && isset($options['file_name'])){
-					$name = $options['file_name'];
+				// create filename from domain name
+				$name = explode('.', $this->url);
+				if(count($name) > 2){
+					$name = $name[1];
 				} else {
-				// otherwise make the name from the $url that was crawled
-					$name = explode('.', $this->url);
-					if(count($name) > 2){
-						$name = $name[1];
-					} else {
-						$name = $name[0];
-					}
+					$name = $name[0];
 				}
-				if(isset($options) && isset($options['use_date'])){
-					$name .= '_';
-					if($options['use_date'] === true){
-						$name .= date('Y-m-d');
-					} elseif(gettype($options['use_date']) === 'string'){
-						$name .= date($options['use_date']);
-					}
-				}
-				// write data to file and return filename
 				$xml_file = fopen($name.'.xml', 'w');
 				fwrite($xml_file, $xml_doc->saveXML());
 				fclose($xml_file);
 				$return = $name.'.xml';
-				break;
-			case 'sitemap':
-			// for sitemap format, make an xml document of $visited and save to the server
-			// Google-compatible sitemaps.org schema used
-				sort($this->visited);
-				$xml_doc = new DOMDocument();
-				$xml_doc->formatOutput = true;
-				
-				// use Google-compatible Sitemap format/schema
-				$paths = $xml_doc->createElement('urlset');
-				$xmlns = $xml_doc->createAttribute('xmlns');
-				$xmlns->value = "http://www.sitemaps.org/schemas/sitemap/0.9";
-				$paths->appendChild($xmlns);
-				// loop through all entries in $visited
-				foreach ($this->visited as $file_path) {
-					// create necessary elements
-					$url = $xml_doc->createElement('url');
-					$loc = $xml_doc->createElement('loc');
-					$path = $xml_doc->createTextNode('http://'.$this->url.urlencode($file_path));
-
-					// assemble elements in order
-					$loc->appendChild($path);
-					$url->appendChild($loc);
-					$paths->appendChild($url);
-				}
-				$xml_doc->appendChild($paths);
-				$xml_doc->normalizeDocument();
-				
-				// save file, return filename
-				$xml_file = fopen('Sitemap.xml', 'w');
-				fwrite($xml_file, $xml_doc->saveXML());
-				fclose($xml_file);
-				$return = 'Sitemap.xml';
 				break;
 		}
 		return $return;
