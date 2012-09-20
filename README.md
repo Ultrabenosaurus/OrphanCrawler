@@ -19,8 +19,30 @@ $crawler = new OrphanCrawler();
 $crawler->ftp('www.example.com', 'fred', 'awesomepassword123');
 $crawler->site('www.example.com');
 
-$ftp_config = $crawler->settings(array('ftp'=>array('passive'=>true, 'file_types'=>array('js', 'css', 'png'))));
-$site_config = $crawler->settings(array('site'=>array('ignore_dirs'=>array('cgi-bin', '_uploads'), 'file_types'=>array('aspx'))));
+$ftp_settings = array(
+	'ftp'=>array(
+		'passive'=>true,
+		'file_types'=>array(
+			'js',
+			'css',
+			'png'
+		)
+	)
+);
+$ftp_config = $crawler->settings($ftp_settings);
+
+$site_settings = array(
+	'site'=>array(
+		'ignore_dirs'=>array(
+			'cgi-bin',
+			'_uploads'
+		),
+		'file_types'=>array(
+			'aspx'
+		)
+	)
+);
+$site_config = $crawler->settings($site_settings);
 
 $output = $crawler->output('compare', 'php');
 echo "<pre>" . print_r($output, true) . "</pre>";
@@ -45,9 +67,19 @@ Optionally you can also pass arrays containing directories that should be ignore
 include 'site-crawler.class.php';
 
 $crawler = new SiteCrawler('www.example.com');
-$crawler->settings(array('ignore_dirs'=>array('cgi-bin', '_uploads'), 'file_types'=>array('aspx')));
-$output = $crawler->output('php');
 
+$settings = array(
+	'ignore_dirs'=>array(
+		'cgi-bin',
+		'_uploads'
+	),
+	'file_types'=>array(
+		'aspx'
+	)
+);
+$results = $crawler->settings($settings);
+
+$output = $crawler->output('php');
 echo "<pre>" . print_r($output, true) . "</pre>";
 
 ?>
@@ -72,9 +104,22 @@ Optionally you can also pass an array of settings such as the directory to treat
 include 'ftp-crawler.class.php';
 
 $crawler = new FTPCrawler('www.example.com', 'fred', 'awesomepassword123');
-$results = $crawler->settings(array('passive'=>true, 'file_types'=>array('js', 'css', 'png'), 'ignore_dirs'=>array('cgi-bin', '_uploads')));
-$output = $crawler->output('php');
 
+$settings = array(
+	'passive'=>true,
+	'file_types'=>array(
+		'js',
+		'css',
+		'png'
+	),
+	'ignore_dirs'=>array(
+		'cgi-bin',
+		'_uploads'
+	)
+);
+$results = $crawler->settings($settings);
+
+$output = $crawler->output('php');
 echo "<pre>" . print_r($output, true) . "</pre>";
 ?>
 ```
