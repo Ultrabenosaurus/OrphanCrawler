@@ -184,13 +184,11 @@ class FTPCrawler{
 				// otherwise try to move to starting directory
 				} else {
 					// otherwise return true
-					//ftp_chdir($this->ftp_conn, $this->start_dir);
 					$return = true;
 				}
 			// otherwise try to move to starting directory
 			} else {
 				// otherwise return true
-				//ftp_chdir($this->ftp_conn, $this->start_dir);
 				$return = true;
 			}
 		}
@@ -225,7 +223,6 @@ class FTPCrawler{
 						foreach ($this->ignore_dirs as $key => $value) {
 							// if directory should be ignored, don't add it
 							if(array_search($value, $temp_path) === true){
-								echo $path." ignored because of ".$value."<br />";
 								$add = false;
 							}
 						}

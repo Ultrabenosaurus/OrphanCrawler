@@ -81,19 +81,16 @@ class OrphanCrawler{
 	// compare the output of the two objects
 	private function compare($ftp, $site){
 		// remove query strings from SiteCrawler's results
-		foreach ($site as $key => $value) {
-			$temp = explode('?', $value);
-			if(count($temp) > 1){
-				$site[$key] = $temp[0];
-			}
-			$site[$key] = preg_replace('%(.*/)index\..*%', "$1", $value);
-		}
+		// foreach ($site as $key => $value) {
+		// 	$temp = explode('?', $value);
+		// 	if(count($temp) > 1){
+		// 		$site[$key] = $temp[0];
+		// 	}
+		// 	$site[$key] = preg_replace('%(.*/)index\..*%', "$1", $value);
+		// }
 		
 		// remove filenames if they are just index pages
 		foreach ($ftp as $key => $value) {
-			if(intval($value) !== 0){
-				array_splice($ftp, $key, 1);
-			}
 			$ftp[$key] = preg_replace('%(.*/)index\..*%', "$1", $value);
 		}
 		
