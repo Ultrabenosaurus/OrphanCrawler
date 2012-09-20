@@ -47,6 +47,10 @@ class OrphanCrawler{
 		$this->_ftp = new FTPCrawler($_server, $_user, $_password, $_start);
 	}
 	
+	public function ftpDisconnect(){
+		return $this->_ftp->disconnect();
+	}
+	
 	// takes an array, calls the settings function of the appropriate object(s)
 	public function settings($options = null){
 		// if nothing passed, loop through array
@@ -75,58 +79,64 @@ class OrphanCrawler{
 	}
 	
 	// compare the output of the two objects
-	private function compare($ftp, $site, $type){
-		switch ($type) {
-			case 'php':
-				foreach ($site as $key => $value) {
-					$temp = explode('?', $value);
-					if(count($temp) > 1){
-						$site[$key] = $temp[0];
-					}
-					if(intval($value) !== 0){
-						array_splice($site, $key, 1);
-					}
-				}
-				foreach ($ftp as $key => $value) {
-					if(intval($value) !== 0){
-						array_splice($ftp, $key, 1);
-					}
-					$ftp[$key] = preg_replace('%(.*/)index\..*%', "$1", $value);
-				}
-				$site = array_unique($site);
-				$site = array_values($site);
-				$ftp = array_unique($ftp);
-				$ftp = array_values($ftp);
-				$return = array_diff($ftp, $site);
-				break;
+	private function compare($ftp, $site){
+		// remove query strings from SiteCrawler's results
+		foreach ($site as $key => $value) {
+			$temp = explode('?', $value);
+			if(count($temp) > 1){
+				$site[$key] = $temp[0];
+			}
+			$site[$key] = preg_replace('%(.*/)index\..*%', "$1", $value);
 		}
+		
+		// remove filenames if they are just index pages
+		foreach ($ftp as $key => $value) {
+			if(intval($value) !== 0){
+				array_splice($ftp, $key, 1);
+			}
+			$ftp[$key] = preg_replace('%(.*/)index\..*%', "$1", $value);
+		}
+		
+		// remove duplicates and correct numeric keys
+		$site = array_unique($site);
+		$site = array_values($site);
+		$ftp = array_unique($ftp);
+		$ftp = array_values($ftp);
+		
+		// find all files on the server that are not linked to
+		$return = array_diff($ftp, $site);
+		$return = array_values($return);
 		return $return;
 	}
 	
+	// output crawl results to user (default: php)
 	public function output($what, $how = 'php'){
 		switch ($what) {
 			case 'site':
+				// crawl the website for links
 				$return['site'] = $this->_site->output($how);
 				break;
 			case 'ftp':
+				// crawl the server for files
 				$return['ftp'] = $this->_ftp->output($how);
 				break;
 			case 'compare':
+				// perform both crawls
 				$ftp_temp = $this->_ftp->output('php');
-				$ftp_temp = $ftp_temp['list'];
-				array_pop($ftp_temp);
-				
 				$site_temp = $this->_site->output('php');
-				$site_temp = $site_temp['crawl']['links'];
+				// compare the results of both crawls
+				$comp_temp = $this->compare($ftp_temp['list'], $site_temp['crawl']['links'], $how);
 				
-				$comp_temp = $this->compare($ftp_temp, $site_temp, $how);
-				array_unshift($comp_temp, count($comp_temp));
-				
-				$return['orphans'] = $comp_temp;
-				$return['ftp'] = $ftp_temp;
-				$return['site'] = $site_temp;
+				// organise all results into a multi-dimensional array
+				$return['orphans']['total'] = count($comp_temp);
+				$return['orphans']['list'] = $comp_temp;
+				$return['ftp']['total'] = $ftp_temp['list_total'];
+				$return['ftp']['list'] = $ftp_temp['list'];
+				$return['site']['total'] = $site_temp['crawl']['links_total'];
+				$return['site']['list'] = $site_temp['crawl']['links'];
 				break;
 		}
+		// return results
 		return $return;
 	}
 }

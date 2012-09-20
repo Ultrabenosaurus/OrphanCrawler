@@ -9,7 +9,7 @@ class FTPCrawler{
 	private $passive;		// (boolean) whether or not a passive connection is required
 	private $list;			// (array) the list of files found on the server
 	private $dirs;			// (array) queue of all directories yet to be crawled
-	private $file_types;	// (array) whitelist of files to listed
+	private $ignore_types;	// (array) whitelist of files to listed
 	private $ignore_dirs;	// (array|null) blacklist of directories [currently applies to any depth]
 	private $ftp_conn;		// (resource) FTP connection pointer
 	
@@ -28,7 +28,7 @@ class FTPCrawler{
 		// crawling settings
 		$this->list = array();
 		$this->dirs = array($_start);
-		$this->file_types = array('html', 'htm', 'php');
+		$this->ignore_types = array('exe', 'air', 'rpm', 'bin', 'sh', 'dmg', 'htaccess', 'cml');
 		$this->ignore_dirs = array();
 		$ftp_conn = null;
 	}
@@ -80,7 +80,7 @@ class FTPCrawler{
 							}
 							break;
 						// check if value is populated array
-						case 'file_types':
+						case 'ignore_types':
 							if(gettype($value) === 'array' && count($value) > 0){
 								// loop through array
 								foreach ($value as $type) {
@@ -128,7 +128,12 @@ class FTPCrawler{
 								$return[$setting] = array('setting' => $setting, 'value' => $value, 'error' => 'Given $value was type '.gettype($value).', <em>array</em> or <em>null</em> required');
 							}
 							break;
+						default:
+							$return[$setting] = array('setting'=>$setting, 'value'=>$value, 'error'=>'Given setting does not exist or cannot be altered');
+							break;
 					}
+				} else {
+					$return[$setting] = array('setting'=>$setting, 'value'=>$value, 'error'=>'Given setting does not exist or cannot be altered');
 				}
 			}
 		} else {
@@ -220,6 +225,7 @@ class FTPCrawler{
 						foreach ($this->ignore_dirs as $key => $value) {
 							// if directory should be ignored, don't add it
 							if(array_search($value, $temp_path) === true){
+								echo $path." ignored because of ".$value."<br />";
 								$add = false;
 							}
 						}
@@ -235,7 +241,7 @@ class FTPCrawler{
 					// if a file, check the filetype against the whitelist
 					$filetype = explode('.', $path);
 					$filetype = $filetype[count($filetype)-1];
-					if(array_search($filetype, $this->file_types) !== false){
+					if(array_search($filetype, $this->ignore_types) === false){
 						// if on whitelist, remove the leading /www and add to $list
 						$this->list[] = $this->pathFix($path);
 					}
@@ -345,7 +351,7 @@ class FTPCrawler{
 					$return['details']['passive'] = 'true';
 				}
 				$return['details']['start_dir'] = $this->start_dir;
-				array_unshift($this->list, count($this->list));
+				$return['list_total'] = count($this->list);
 				$return['list'] = $this->list;
 				break;
 		}

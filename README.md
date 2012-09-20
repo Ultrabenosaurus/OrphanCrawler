@@ -22,7 +22,7 @@ $crawler->site('www.example.com');
 $ftp_settings = array(
 	'ftp'=>array(
 		'passive'=>true,
-		'file_types'=>array(
+		'ignore_types'=>array(
 			'js',
 			'css',
 			'png'
@@ -107,7 +107,7 @@ $crawler = new FTPCrawler('www.example.com', 'fred', 'awesomepassword123');
 
 $settings = array(
 	'passive'=>true,
-	'file_types'=>array(
+	'ignore_types'=>array(
 		'js',
 		'css',
 		'png'
@@ -129,12 +129,10 @@ echo "<pre>" . print_r($output, true) . "</pre>";
 
 ##To Do##
 
-- Make relativePathFix() more adaptable and competent
-  - Turn it into a full path handler rather than just fixing relative paths?
+- Make SiteCrawler::relativePathFix() more adaptable and competent
   - Process blog-style paths
 - Allow for listing links to external websites/other protocols
   - Main problem with this is javascript links
-- Add a list of files included on each page (images, flash files, etc) rather than just hyperlinks
 - Look into other output formats
   - Add XML format to FTPCrawler
   - Add XML format to OrphanCrawler
