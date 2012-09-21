@@ -131,7 +131,6 @@ echo "<pre>" . print_r($output, true) . "</pre>";
 
 - Make SiteCrawler::relativePathFix() more adaptable and competent
   - Process blog-style paths
-- Parse CSS files for images
 - Allow for listing links to external websites/other protocols
   - Main problem with this is javascript links
 - Look into other output formats

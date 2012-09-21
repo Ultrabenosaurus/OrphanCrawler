@@ -18,6 +18,7 @@ class SiteCrawler{
 		// variables used for crawling
 		$this->pages = array('/');
 		$this->current_path = '/';
+		$this->crawled_dirs = array();
 		$this->links = array();
 		$this->visited = array();
 		$this->ignore_dirs = null;
@@ -324,10 +325,81 @@ class SiteCrawler{
 		}
 	}
 	
+	// look through all files found in crawl for CSS files and parse them for images
+	private function parseCSS(){
+		// collect all unique values from the arrays in $links
+		$css_links = array();
+		foreach ($this->links as $key => $paths) {
+			foreach ($paths as $key => $value) {
+				$css_links[] = $value;
+			}
+		}
+		$css_links = array_unique($css_links);
+		sort($css_links);
+		// loop through all values look for files
+		foreach ($css_links as $value) {
+			if(count(explode('.', $value)) > 1){
+				$temp = explode('.', $value);
+				$qry = false;
+				// if a file is found, see if it has a querystring
+				foreach ($temp as $key => $css) {
+					if(count(explode('?', $css)) > 1){
+						$temp[$key] = explode('?', $css);
+						$qry = $key;
+					}
+				}
+				// if it has a query string, remove it
+				if($qry){
+					$type = $temp[$qry][0];
+				// otherwise, just grab the extension
+				} else {
+					$type = count($temp);
+					$type = $temp[$type-1];
+				}
+				// check if the file extension is css
+				if($type === 'css'){
+					// ensure path to file exists
+					$path = 'http://'.$this->url.$value;
+					if(@file_get_contents($path)){
+						// add file to $visited
+						$this->visited[] = $value;
+						// set current path for relativePathFiX()
+						$dir = explode('/', $value);
+						array_pop($dir);
+						$this->current_path = implode('/', $dir).'/';
+						// open the file to start parsing
+						$file = file_get_contents($path);
+						$imgs = array();
+						// find all occurrences of the url() method used to include images
+						preg_match_all("%.*url\('*(.*)[^\?]*\).*\)*%", $file, $matches);
+						// loop through occurrences
+						foreach ($matches[1] as $key => $img) {
+							// check if a query string is attached to the image (used to prevent caching)
+							if(count(explode('?', $img)) > 1){
+								// if there is, remove it and fix the path
+								$temp = explode('?', $img);
+								$imgs[] = $this->relativePathFix($temp[0]);
+							} else {
+								// if there isn't a query string, make sure to remove the closing bracket
+								$temp = explode(')', $img);
+								$imgs[] = $this->relativePathFix($temp[0]);
+							}
+						}
+						// if images were found, add them to $links
+						if(count($imgs) > 0){
+							$this->links[$value] = $imgs;
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	// formats array contents ready for display (default: php)
 	public function output($type = 'php'){
 		// crawl the site
 		$this->crawl();
+		$this->parseCSS();
 		
 		// switch statement to make it easy to add different output formats
 		switch($type){
@@ -353,8 +425,7 @@ class SiteCrawler{
 				}
 				break;
 			case 'xml':
-			// for xml, make an xml document of $links and save to the server
-			// using the domain that was crawled as the filename
+			// for xml, make an xml document of $links and save to the server using the domain that was crawled as the filename
 				$xml_doc = new DOMDocument();
 				$xml_doc->formatOutput = true;
 				$paths = $xml_doc->createElement('pages');
