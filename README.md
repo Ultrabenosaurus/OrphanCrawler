@@ -53,6 +53,7 @@ echo "<pre>" . print_r($output, true) . "</pre>";
 **Output Formats**
 - 'php' is the default output which provides a multi-dimensional array of the orphaned files, FTP output $list and Site output $links.
 - 'xml' uses the arrays from the 'php' output of the other two classes to generate an XML file containing the list of orphaned files, settings used for FTP, list of files on the server and the list of pages crawled, along with the count of entries in each section.
+- 'html' is very similar to 'xml' however, the three classes generate their own HTML files along with an index file with links to the three. the default directory structure for this is "./OrphanCrawler_Report/<url>/<YYYY-MM-DD_hh-mm-ss>/".
 
 ###SiteCrawler###
 
@@ -131,10 +132,11 @@ echo "<pre>" . print_r($output, true) . "</pre>";
 
 ##To Do##
 
+- <form> action pages need to be crawled (SiteCrawler)
 - Make SiteCrawler::relativePathFix() more adaptable and competent
   - Process blog-style paths
 - Allow for listing links to external websites/other protocols
   - Main problem with this is javascript links
 - Look into other output formats
   - Expand the 'sitemap' format in SiteCrawler
-  - HTML output (template system?)
+  - template system for HTML output?
