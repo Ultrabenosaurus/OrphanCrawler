@@ -139,4 +139,9 @@ echo "<pre>" . print_r($output, true) . "</pre>";
   - Main problem with this is javascript links
 - Look into other output formats
   - Expand the 'sitemap' format in SiteCrawler
-  - template system for HTML output?
+  - HTML output
+    - Template system?
+    - jQuery for removing items from list?
+- Error logging
+  - Log file?
+  - Per-class array?
