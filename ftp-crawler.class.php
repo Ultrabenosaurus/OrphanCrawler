@@ -147,7 +147,7 @@ class FTPCrawler{
 					// loop through properties, add to array if not $list or $dirs
 					foreach ($properties as $prop) {
 						$name = $prop->getName();
-						if($name !== 'list' && $name !== 'dirs'){
+						if($name !== 'list' && $name !== 'dirs' && $name !== 'ftp_conn'){
 							$return[$name] = $this->{$name};
 						}
 					}
@@ -336,8 +336,6 @@ class FTPCrawler{
 		// gather data by crawling the server
 		$this->crawl();
 		switch ($type) {
-			case 'xml':
-				break;
 			case 'php':
 			// for php format, collect data into a multi-dimensional array
 				$return['details']['server'] = $this->server;
@@ -350,6 +348,60 @@ class FTPCrawler{
 				$return['details']['start_dir'] = $this->start_dir;
 				$return['list_total'] = count($this->list);
 				$return['list'] = $this->list;
+				break;
+			case 'xml':
+				// new DOMDocument
+				$xml_doc = new DOMDocument();
+				$xml_doc->formatOutput = true;
+				$root = $xml_doc->createElement('ftp_crawl');
+				// settings used for FTP server
+				$settings_elem = $xml_doc->createElement('settings');
+				$settings = $this->settings('get');
+				foreach ($settings as $key => $value) {
+					if(is_array($value)){
+						$sett = $xml_doc->createElement($key);
+						foreach ($value as $val) {
+							if(is_null($val) || empty($val)){
+								$temp = $xml_doc->createElement('value', 'null');
+							} else {
+								$temp = $xml_doc->createElement('value', $val);
+							}
+							$sett->appendChild($temp);
+						}
+					} else {
+						$sett = $xml_doc->createElement($key, $value);
+					}
+					$settings_elem->appendChild($sett);
+				}
+				// results of crawl
+				$results_elem = $xml_doc->createElement('results');
+				$total = $xml_doc->createElement('total', count($this->list));
+				$list = $xml_doc->createElement('list');
+				foreach ($this->list as $key => $value) {
+					$item = $xml_doc->createElement('list_item');
+					$path = $xml_doc->createElement('path', $value);
+					$url = $xml_doc->createElement('url', 'http://'.$this->server.$value);
+					$item->appendChild($path);
+					$item->appendChild($url);
+					$list->appendChild($item);
+				}
+				// finish up
+				$root->appendChild($settings_elem);
+				$root->appendChild($list);
+				$xml_doc->appendChild($root);
+				$xml_doc->normalizeDocument();
+				// name, save and return
+				$name = explode('.', $this->server);
+				if(count($name) > 2){
+					$name = $name[1];
+				} else {
+					$name = $name[0];
+				}
+				$name = $name.'_ftpcrawl.xml';
+				$xml_file = fopen($name, 'w');
+				fwrite($xml_file, $xml_doc->saveXML());
+				fclose($xml_file);
+				$return = $name;
 				break;
 		}
 		// return formatted data

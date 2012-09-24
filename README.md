@@ -52,6 +52,7 @@ echo "<pre>" . print_r($output, true) . "</pre>";
 
 **Output Formats**
 - 'php' is the default output which provides a multi-dimensional array of the orphaned files, FTP output $list and Site output $links.
+- 'xml' uses the arrays from the 'php' output of the other two classes to generate an XML file containing the list of orphaned files, settings used for FTP, list of files on the server and the list of pages crawled, along with the count of entries in each section.
 
 ###SiteCrawler###
 
@@ -88,7 +89,7 @@ echo "<pre>" . print_r($output, true) . "</pre>";
 **Output Formats**
 - 'php' is the default output which provides a multi-dimensional array of crawled page count, crawled page list and a list of links-per-page.
 - 'xml' output saves the list of links-per-page to an XML file. The file name is generated from the initial URL.
-- 'sitemap' uses the sitemaps.org 0.9 schema to generate a Google-compatible Sitemap.xml file.
+- 'sitemap' outputs a very simple XML file according to the (Sitemaps.org)[http://sitemaps.org/] (0.9 Schema)[http://www.sitemaps.org/protocol.html] which means it is compatible with Google.
 
 ###FTPCrawler###
 
@@ -126,6 +127,7 @@ echo "<pre>" . print_r($output, true) . "</pre>";
 
 **Output Formats**
 - 'php' is the default output which provides a multi-dimensional array of crawled page count, crawled page list and a list of links-per-page.
+- 'xml' outputs a basic document containing the settings used for the connection, the total count of files found and the full list of files as both paths and URLs. As an XML file, obviously.
 
 ##To Do##
 
@@ -134,5 +136,5 @@ echo "<pre>" . print_r($output, true) . "</pre>";
 - Allow for listing links to external websites/other protocols
   - Main problem with this is javascript links
 - Look into other output formats
-  - Add XML format to FTPCrawler
-  - Add XML format to OrphanCrawler
+  - Expand the 'sitemap' format in SiteCrawler
+  - HTML output (template system?)

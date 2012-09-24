@@ -81,13 +81,13 @@ class OrphanCrawler{
 	// compare the output of the two objects
 	private function compare($ftp, $site){
 		// remove query strings from SiteCrawler's results
-		// foreach ($site as $key => $value) {
-		// 	$temp = explode('?', $value);
-		// 	if(count($temp) > 1){
-		// 		$site[$key] = $temp[0];
-		// 	}
-		// 	$site[$key] = preg_replace('%(.*/)index\..*%', "$1", $value);
-		// }
+		foreach ($site as $key => $value) {
+			$temp = explode('?', $value);
+			if(count($temp) > 1){
+				$site[$key] = $temp[0];
+			}
+			$site[$key] = preg_replace('%(.*/)index\..*%', "$1", $value);
+		}
 		
 		// remove filenames if they are just index pages
 		foreach ($ftp as $key => $value) {
@@ -109,28 +109,124 @@ class OrphanCrawler{
 	// output crawl results to user (default: php)
 	public function output($what, $how = 'php'){
 		switch ($what) {
-			case 'site':
+			case 'nocompare':
 				// crawl the website for links
 				$return['site'] = $this->_site->output($how);
+				// crawl the server for files
+				$return['ftp'] = $this->_ftp->output($how);
+				break;
+			case 'site':
+				// crawl the website for links
+				$return = $this->_site->output($how);
 				break;
 			case 'ftp':
 				// crawl the server for files
-				$return['ftp'] = $this->_ftp->output($how);
+				$return = $this->_ftp->output($how);
 				break;
 			case 'compare':
 				// perform both crawls
 				$ftp_temp = $this->_ftp->output('php');
 				$site_temp = $this->_site->output('php');
 				// compare the results of both crawls
-				$comp_temp = $this->compare($ftp_temp['list'], $site_temp['crawl']['links'], $how);
+				$comp_temp = $this->compare($ftp_temp['list'], $site_temp['crawl']['links']);
+				$url = $this->settings();
+				$url = $url['site']['url'];
 				
-				// organise all results into a multi-dimensional array
-				$return['orphans']['total'] = count($comp_temp);
-				$return['orphans']['list'] = $comp_temp;
-				$return['ftp']['total'] = $ftp_temp['list_total'];
-				$return['ftp']['list'] = $ftp_temp['list'];
-				$return['site']['total'] = $site_temp['crawl']['links_total'];
-				$return['site']['list'] = $site_temp['crawl']['links'];
+				switch ($how) {
+					case 'php':
+						// organise all results into a multi-dimensional array
+						$return['orphans']['total'] = count($comp_temp);
+						$return['orphans']['list'] = $comp_temp;
+						$return['ftp']['total'] = $ftp_temp['list_total'];
+						$return['ftp']['list'] = $ftp_temp['list'];
+						$return['site']['total'] = $site_temp['crawl']['links_total'];
+						$return['site']['list'] = $site_temp['crawl']['links'];
+						break;
+					case 'xml':
+						// new DOMDocument
+						$xml_doc = new DOMDocument();
+						$xml_doc->formatOutput = true;
+						$root = $xml_doc->createElement('orphan_crawl');
+						// orphans data
+						$orphan_elem = $xml_doc->createElement('orphans');
+						$orphan_elem->appendChild($xml_doc->createElement('total', count($comp_temp)));
+						$orphan_list = $xml_doc->createElement('list');
+						foreach ($comp_temp as $key => $value) {
+							$orphan_item = $xml_doc->createElement('orphan');
+							$orphan_path = $xml_doc->createElement('path', $value);
+							$orphan_url = $xml_doc->createElement('url', 'http://'.$url.$value);
+							$orphan_item->appendChild($orphan_path);
+							$orphan_item->appendChild($orphan_url);
+							$orphan_list->appendChild($orphan_item);
+						}
+						$orphan_elem->appendChild($orphan_list);
+						// ftp data
+						$ftp_elem = $xml_doc->createElement('ftp');
+						$ftp_settings = $this->settings();
+						$ftp_settings = $ftp_settings['ftp'];
+						$ftp_settings_elem = $xml_doc->createElement('settings');
+						foreach ($ftp_settings as $key => $value) {
+							if(is_array($value)){
+								$sett = $xml_doc->createElement($key);
+								foreach ($value as $val) {
+									if(is_null($val) || empty($val)){
+										$temp = $xml_doc->createElement('value', 'null');
+									} else {
+										$temp = $xml_doc->createElement('value', $val);
+									}
+									$sett->appendChild($temp);
+								}
+							} else {
+								$sett = $xml_doc->createElement($key, $value);
+							}
+							$ftp_settings_elem->appendChild($sett);
+						}
+						$ftp_elem->appendChild($ftp_settings_elem);
+						$ftp_elem->appendChild($xml_doc->createElement('total', $ftp_temp['list_total']));
+						$ftp_list = $xml_doc->createElement('list');
+						foreach ($ftp_temp['list'] as $key => $value) {
+							$ftp_item = $xml_doc->createElement('file');
+							$ftp_path = $xml_doc->createElement('path', $value);
+							$ftp_url = $xml_doc->createElement('url', 'http://'.$url.$value);
+							$ftp_item->appendChild($ftp_path);
+							$ftp_item->appendChild($ftp_url);
+							$ftp_list->appendChild($ftp_item);
+						}
+						$ftp_elem->appendChild($ftp_list);
+						// site data
+						$site_elem = $xml_doc->createElement('site');
+						$site_elem->appendChild($xml_doc->createElement('total', $site_temp['crawl']['links_total']));
+						$site_list = $xml_doc->createElement('list');
+						foreach ($site_temp['crawl']['links'] as $key => $value) {
+							$site_item = $xml_doc->createElement('page');
+							$site_path = $xml_doc->createElement('path', $value);
+							$site_url = $xml_doc->createElement('url', 'http://'.$url.$value);
+							$site_item->appendChild($site_path);
+							$site_item->appendChild($site_url);
+							$site_list->appendChild($site_item);
+						}
+						$site_elem->appendChild($site_list);
+						// finish up
+						$root->appendChild($orphan_elem);
+						$root->appendChild($ftp_elem);
+						$root->appendChild($site_elem);
+						$xml_doc->appendChild($root);
+						$xml_doc->normalizeDocument();
+						// name, save and return
+						$name = explode('.', $url);
+						if(count($name) > 2){
+							$name = $name[1];
+						} else {
+							$name = $name[0];
+						}
+						$name .= '_orphancrawl.xml';
+						$xml_file = fopen($name, 'w');
+						fwrite($xml_file, $xml_doc->saveXML());
+						fclose($xml_file);
+						$return = $name;
+						break;
+				}
+				
 				break;
 		}
 		// return results

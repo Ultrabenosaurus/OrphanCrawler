@@ -428,23 +428,42 @@ class SiteCrawler{
 			// for xml, make an xml document of $links and save to the server using the domain that was crawled as the filename
 				$xml_doc = new DOMDocument();
 				$xml_doc->formatOutput = true;
-				$paths = $xml_doc->createElement('pages');
+				$root = $xml_doc->createElement('site_crawl');
+				// pages visited
+				$visited = $xml_doc->createElement('crawled');
+				$visited_count = $xml_doc->createAttribute('total');
+				$visited_count->value = count($this->visited);
+				$visited->appendChild($visited_count);
+				foreach ($this->visited as $key => $value) {
+					$path = $xml_doc->createElement('page', 'http://'.$this->url.$value);
+					$path_id = $xml_doc->createAttribute('path');
+					$path_id->value = $value;
+					$path->appendChild($path_id);
+					$visited->appendChild($path);
+				}
+				// links per page
+				$links = $xml_doc->createElement('links');
 				// loop through all the arrays in $links
 				foreach ($this->links as $file_path => $hrefs) {
 					// create element for each array
 					$path = $xml_doc->createElement('page');
-					$path_id = $xml_doc->createAttribute('id');
+					$path_id = $xml_doc->createAttribute('path');
 					// use array's key (path crawled) as element's ID
 					$path_id->value = $file_path;
 					$path->appendChild($path_id);
 					// loop through all links in each array, adding to element
 					foreach ($hrefs as $href) {
-						$link = $xml_doc->createElement('link', $href);
+						$link = $xml_doc->createElement('link', 'http://'.$this->url.$href);
+						$link_id = $xml_doc->createAttribute('path');
+						$link_id->value = $href;
+						$link->appendChild($link_id);
 						$path->appendChild($link);
 					}
-					$paths->appendChild($path);
+					$links->appendChild($path);
 				}
-				$xml_doc->appendChild($paths);
+				$root->appendChild($visited);
+				$root->appendChild($links);
+				$xml_doc->appendChild($root);
 				$xml_doc->normalizeDocument();
 				// create filename from domain name
 				$name = explode('.', $this->url);
@@ -453,10 +472,38 @@ class SiteCrawler{
 				} else {
 					$name = $name[0];
 				}
-				$xml_file = fopen($name.'.xml', 'w');
+				$name .= '_sitecrawl.xml';
+				$xml_file = fopen($name, 'w');
 				fwrite($xml_file, $xml_doc->saveXML());
 				fclose($xml_file);
-				$return = $name.'.xml';
+				$return = $name;
+				break;
+			case 'sitemap':
+				// new DOMDocument
+				$xml_doc = new DOMDocument();
+				$xml_doc->formatOutput = true;
+				// root 'urlset' element with URI of the schema
+				$root = $xml_doc->createElement('urlset');
+				$xmlns = $xml_doc->createAttribute('xmlns');
+				$xmlns->value = 'http://www.sitemaps.org/schemas/sitemap/0.9';
+				$root->appendChild($xmlns);
+				// create the individual 'url' elements
+				sort($this->visited);
+				foreach ($this->visited as $key => $value) {
+					$url = $xml_doc->createElement('url');
+					$loc = $xml_doc->createElement('loc', 'http://'.$this->url.$value);
+					$url->appendChild($loc);
+					$root->appendChild($url);
+				}
+				// finish up
+				$xml_doc->appendChild($root);
+				$xml_doc->normalizeDocument();
+				// name, save and return
+				$name = 'sitemap.xml';
+				$xml_file = fopen($name, 'w');
+				fwrite($xml_file, $xml_doc->saveXML());
+				fclose($xml_file);
+				$return = $name;
 				break;
 		}
 		return $return;
