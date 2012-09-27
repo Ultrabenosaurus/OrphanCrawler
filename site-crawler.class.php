@@ -1,5 +1,10 @@
 <?php
 
+// Original PHP code by Dan at github.com/Ultrabenosaurus
+// Please acknowledge use of this code by including this header.
+
+include_once 'robots-crawler.class.php';
+
 class SiteCrawler{
 	private $url; 			// (string) initial to start crawling from
 	private $pages;			// (array) queue of pages yet to be crawled
@@ -8,10 +13,11 @@ class SiteCrawler{
 	private $visited;		// (array) list of all pages visited during crawl
 	private $ignore_dirs;	// (array|null) any directories to be ignored [currently applies to any depth]
 	private $file_types;	// (array) extensions of files to be crawled
+	private $robot;			// (RobotsCrawler) object used to compare queued paths to robots.txt rules
 	private $doc;			// (DOMDocument) object used to open pages
 	
 	// adds initial values to variables, starts the crawl
-	public function __construct($_start){
+	public function __construct($_start, $_robots = array(false, false)){
 		// starting url
 		$this->url = $_start;
 		
@@ -29,6 +35,13 @@ class SiteCrawler{
 		libxml_use_internal_errors(true);
 		$this->doc->strictErrorChecking = false;
 		$this->doc->recover = true;
+		
+		// robots.txt
+		if($_robots[0]){
+			$this->robot = new RobotsCrawler($this->url, $_robots[1]);
+		} else {
+			$this->robot = false;
+		}
 	}
 	
 	// allows user to change variables if values are valid
@@ -120,8 +133,11 @@ class SiteCrawler{
 					// loop through properties, add to array
 					foreach ($properties as $prop) {
 						$name = $prop->getName();
-						if($name !== 'pages' && $name !== 'links' && $name !== 'visited' && $name !== 'doc'){
+						if($name !== 'pages' && $name !== 'links' && $name !== 'visited' && $name !== 'doc' && $name !== 'robot'){
 							$return[$name] = $this->{$name};
+						}
+						if($this->robot){
+							$return['robot'] = $this->robot->settings();
 						}
 					}
 					break;
@@ -132,67 +148,85 @@ class SiteCrawler{
 	
 	// opens first entry in $pages, extracts all hyperlinks, adds them to $links
 	private function crawl(){
-		// set the file path, extract directory structure, open file
-		$path = 'http://'.$this->url.$this->pages[0];
-		$this->setCurrentPath();
-		$this->doc->loadHTMLFile($path);
-		
-		// find all <a> tags in the page
-		$a_tags = $this->doc->getElementsByTagName('a');
-		$link_tags = $this->doc->getElementsByTagName('link');
-		$script_tags = $this->doc->getElementsByTagName('script');
-		$img_tags = $this->doc->getElementsByTagName('img');
-		// if <a> tags were found, loop through all of them
-		if(!is_null($a_tags)){
-			foreach ($a_tags as $link) {
-				// find the href attribute of each link
-				foreach ($link->attributes as $attrib) {
-					if(strtolower($attrib->name) == 'href'){
-						// make sure its not external, javascript or to an anchor
-						if(count(explode(':', $attrib->value)) < 2 && count(explode('#', $attrib->value)) < 2){
-							$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
+		// check if path is allowed by robots.txt
+		if(!$this->robot || $this->robot->crawlAllowed($this->pages[0])){
+			// set the file path, extract directory structure, open file
+			$path = 'http://'.$this->url.$this->pages[0];
+			$this->setCurrentPath();
+			$this->doc->loadHTMLFile($path);
+			
+			// find all <a> tags in the page
+			$a_tags = $this->doc->getElementsByTagName('a');
+			$link_tags = $this->doc->getElementsByTagName('link');
+			$script_tags = $this->doc->getElementsByTagName('script');
+			$img_tags = $this->doc->getElementsByTagName('img');
+			$form_tags = $this->doc->getElementsByTagName('form');
+			// if <a> tags were found, loop through all of them
+			if(isset($a_tags) && !is_null($a_tags)){
+				foreach ($a_tags as $link) {
+					// find the href attribute of each link
+					foreach ($link->attributes as $attrib) {
+						if(strtolower($attrib->name) == 'href'){
+							// make sure its not external, javascript or to an anchor
+							if(count(explode(':', $attrib->value)) < 2 && count(explode('#', $attrib->value)) < 2){
+								$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
+							}
 						}
 					}
 				}
 			}
-		}
-		// if <link> tags were found, loop through all of them
-		if(!is_null($link_tags)){
-			foreach ($link_tags as $link) {
-				// find the href attribute of each link
-				foreach ($link->attributes as $attrib) {
-					if(strtolower($attrib->name) == 'href'){
-						// make sure its not external, javascript or to an anchor
-						if(count(explode(':', $attrib->value)) < 2 && count(explode('#', $attrib->value)) < 2){
-							$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
+			// if <link> tags were found, loop through all of them
+			if(isset($link_tags) && !is_null($link_tags)){
+				foreach ($link_tags as $link) {
+					// find the href attribute of each link
+					foreach ($link->attributes as $attrib) {
+						if(strtolower($attrib->name) == 'href'){
+							// make sure its not external, javascript or to an anchor
+							if(count(explode(':', $attrib->value)) < 2 && count(explode('#', $attrib->value)) < 2){
+								$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
+							}
 						}
 					}
 				}
 			}
-		}
-		// if <script> tags were found, loop through all of them
-		if(!is_null($script_tags)){
-			foreach ($script_tags as $link) {
-				// find the src attribute of each link
-				foreach ($link->attributes as $attrib) {
-					if(strtolower($attrib->name) == 'src'){
-						// make sure its not external, javascript or to an anchor
-						if(count(explode(':', $attrib->value)) < 2 && count(explode('#', $attrib->value)) < 2){
-							$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
+			// if <script> tags were found, loop through all of them
+			if(isset($script_tags) && !is_null($script_tags)){
+				foreach ($script_tags as $link) {
+					// find the src attribute of each link
+					foreach ($link->attributes as $attrib) {
+						if(strtolower($attrib->name) == 'src'){
+							// make sure its not external, javascript or to an anchor
+							if(count(explode(':', $attrib->value)) < 2 && count(explode('#', $attrib->value)) < 2){
+								$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
+							}
 						}
 					}
 				}
 			}
-		}
-		// if <img> tags were found, loop through all of them
-		if(!is_null($img_tags)){
-			foreach ($img_tags as $link) {
-				// find the src attribute of each link
-				foreach ($link->attributes as $attrib) {
-					if(strtolower($attrib->name) == 'src'){
-						// make sure its not external, javascript or to an anchor
-						if(count(explode(':', $attrib->value)) < 2 && count(explode('#', $attrib->value)) < 2){
-							$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
+			// if <img> tags were found, loop through all of them
+			if(isset($img_tags) && !is_null($img_tags)){
+				foreach ($img_tags as $link) {
+					// find the src attribute of each link
+					foreach ($link->attributes as $attrib) {
+						if(strtolower($attrib->name) == 'src'){
+							// make sure its not external, javascript or to an anchor
+							if(count(explode(':', $attrib->value)) < 2 && count(explode('#', $attrib->value)) < 2){
+								$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
+							}
+						}
+					}
+				}
+			}
+			// if <form> tags were found, loop through all of them
+			if(isset($forms_tags) && !is_null($form_tags)){
+				foreach ($form_tags as $link) {
+					// find the src attribute of each link
+					foreach ($link->attributes as $attrib) {
+						if(strtolower($attrib->name) == 'action'){
+							// make sure its not external, javascript or to an anchor
+							if(count(explode(':', $attrib->value)) < 2 && count(explode('#', $attrib->value)) < 2){
+								$this->links[$this->pages[0]][] = $this->relativePathFix($attrib->value);
+							}
 						}
 					}
 				}

@@ -1,7 +1,10 @@
 <?php
 
-include 'site-crawler.class.php';
-include 'ftp-crawler.class.php';
+// Original PHP code by Dan at github.com/Ultrabenosaurus
+// Please acknowledge use of this code by including this header.
+
+include_once 'site-crawler.class.php';
+include_once 'ftp-crawler.class.php';
 
 class OrphanCrawler{
 	private $_site;		// SiteCrawler object
@@ -24,7 +27,7 @@ class OrphanCrawler{
 						break;
 					// for SiteCrawler, simply pass the URL
 					case 'site':
-						$this->site($value);
+						$this->site($value['url'], $value['robots']);
 						break;
 				}
 			}
@@ -37,8 +40,8 @@ class OrphanCrawler{
 	
 	// creates a new SiteCrawler object
 	// is public so that the constructor can be empty, and to make it easy to re-use OrphanCrawler objects
-	public function site($_start){
-		$this->_site = new SiteCrawler($_start);
+	public function site($_start, $_robots = array(false, false)){
+		$this->_site = new SiteCrawler($_start, $_robots);
 	}
 	
 	// creates a new FTPCrawler object

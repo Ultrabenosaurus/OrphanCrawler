@@ -1,5 +1,8 @@
 <?php
 
+// Original PHP code by Dan at github.com/Ultrabenosaurus
+// Please acknowledge use of this code by including this header.
+
 class FTPCrawler{
 	private $server;		// (string) host address of FTP server
 	private $user;			// (string) username for logging into FTP server
