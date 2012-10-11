@@ -143,6 +143,7 @@ Can take an optional parameter to set a custom user-agent.
 Uses `@file()` as a fallback if `CURL` is not installed.
 
 **Usage:**
+
 Example 1
 ```php
 <?php
@@ -168,13 +169,7 @@ echo "<pre>" . print_r($rules, true) . "</pre>";
 ?>
 ```
 
-**Output Formats**
-<<<<<<< HEAD
-- `php` is the default output which provides a multi-dimensional array of crawled page count, crawled page list and a list of links-per-page.
-- `xml` outputs a basic document containing the settings used for the connection, the total count of files found and the full list of files as both paths and URLs. As an XML file, obviously.
-=======
 There are no options here. During normal use (as part of `SiteCrawler`) it will return either `true` or `false`, determining whether or not the current path should be crawled.
->>>>>>> added section for RobotsCrawler
 
 ##To Do##
 
